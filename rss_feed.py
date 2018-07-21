@@ -195,8 +195,7 @@ class RssFeed(object):
                 image_url = image_url.replace('http:', 'https:')
             if '[' in image_url or ']' in image_url:
                 return default_url
-            r = requests.get(image_url)
-            if r.status_code == 200:
+            if str(image_url.startswith('https:')):
                 return image_url
             else:
                 print("can not get image url: {0}".format(image_url))

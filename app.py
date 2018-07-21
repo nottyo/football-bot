@@ -156,10 +156,10 @@ def handle_postback(event):
             football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
         print('news=all, goal-com completed')
         # shotongoal
-        # shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
-        # carousel_template.contents.append(
-        #     football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
-        # print('news=all, shotongoal completed')
+        shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
+        carousel_template.contents.append(
+            football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
+        print('news=all, shotongoal completed')
         # soccersuck
         soccersuck_data = rss_feed.get_soccersuck_feed(5)
         carousel_template.contents.append(
