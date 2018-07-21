@@ -1,0 +1,142 @@
+from flask import Flask, request, abort, jsonify
+import sys
+import os
+import json
+import feedparser
+from rss_feed import RssFeed
+from football_news import FootballNews
+
+from linebot import (
+    LineBotApi, WebhookHandler
+)
+
+from linebot.exceptions import (
+    LineBotApiError, InvalidSignatureError
+)
+
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage,
+    SourceUser, SourceGroup, SourceRoom,
+    TemplateSendMessage, ConfirmTemplate, MessageAction,
+    ButtonsTemplate, ImageCarouselTemplate, ImageCarouselColumn, URIAction,
+    PostbackAction, DatetimePickerAction,
+    CarouselTemplate, CarouselColumn, PostbackEvent,
+    StickerMessage, StickerSendMessage, LocationMessage, LocationSendMessage,
+    ImageMessage, VideoMessage, AudioMessage, FileMessage,
+    UnfollowEvent, FollowEvent, JoinEvent, LeaveEvent, BeaconEvent,
+    FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
+    TextComponent, SpacerComponent, IconComponent, ButtonComponent,
+    SeparatorComponent,
+)
+
+
+
+app = Flask(__name__)
+rss_feed = RssFeed()
+football_news = FootballNews()
+
+channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
+channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
+if channel_secret is None:
+    print('Specify LINE_CHANNEL_SECRET as environment variable.')
+    sys.exit(1)
+if channel_access_token is None:
+    print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
+    sys.exit(1)
+
+line_bot_api = LineBotApi(channel_access_token)
+handler = WebhookHandler(channel_secret)
+
+
+@app.route("/callback", methods=['POST'])
+def callback():
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        handler.handle(body, signature)
+    except LineBotApiError as e:
+        print("Got exception from LINE Messaging API: %s\n" % e.message)
+        for m in e.error.details:
+            print("  %s: %s" % (m.property, m.message))
+        print("\n")
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+
+@app.route('/')
+def hello_world():
+    return 'Hello World!'
+
+
+@app.route('/news/bbc/<limit>')
+def get_bbc_news(limit):
+    data = rss_feed.get_bbc_feed(int(limit))
+    return jsonify(data)
+
+
+@app.route('/news/skysports/<limit>')
+def get_skysports_news(limit):
+    data = rss_feed.get_skysports_feed(int(limit))
+    return jsonify(data)
+
+
+@app.route('/news/goal/<limit>')
+def get_goal_news(limit):
+    data = rss_feed.get_goal_feed(int(limit))
+    return jsonify(data)
+
+
+@app.route('/news/guardian/<limit>')
+def get_guardian_news(limit):
+    data = rss_feed.get_guardian_feed(int(limit))
+    return jsonify(data)
+
+
+@app.route('/news/mirror/<limit>')
+def get_mirror_news(limit):
+    data = rss_feed.get_mirror_feed(int(limit))
+    return jsonify(data)
+
+
+@app.route('/news/shotongoal/<limit>')
+def get_shotongoal_news(limit):
+    data = rss_feed.get_shot_on_goal_feed(int(limit))
+    return jsonify(data)
+
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_text_message(event):
+    text = event.message.text
+    if text.lower() == 'bbc':
+        data = rss_feed.get_bbc_feed(5)
+        result = football_news.get_news_bubble("#FEE63E", data)
+    if text.lower() == 'sky':
+        data = rss_feed.get_skysports_feed(5)
+        result = football_news.get_news_bubble("#BB0211", data, header_text_color="#ffffff")
+    if text.lower() == 'goal':
+        data = rss_feed.get_goal_feed(5)
+        result = football_news.get_news_bubble("#091F2C", data, header_text_color="#ffffff")
+    if text.lower() == 'guardian':
+        data = rss_feed.get_guardian_feed(5)
+        result = football_news.get_news_bubble("#09508D", data, header_text_color="#ffffff")
+    if text.lower() == 'mirror':
+        data = rss_feed.get_mirror_feed(5)
+        result = football_news.get_news_bubble("#E80E0D", data, header_text_color="#ffffff")
+    if text.lower() == 'shotongoal':
+        data = rss_feed.get_shot_on_goal_feed(5)
+        result = football_news.get_news_bubble("#1A1A1A", data, header_text_color="#ffffff")
+
+    if isinstance(result, BubbleContainer):
+        line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='news', contents=result))
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

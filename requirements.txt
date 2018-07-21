@@ -1,0 +1,4 @@
+feedparser==5.2.1
+line-bot-sdk==1.7.2
+pytz==2018.5
+beautifulsoup4==4.6
