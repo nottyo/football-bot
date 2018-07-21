@@ -135,29 +135,36 @@ def handle_postback(event):
         # bbc-sport
         bbc_data = rss_feed.get_bbc_feed(5)
         carousel_template.contents.append(football_news.get_news_bubble("#FEE63E", bbc_data))
+        print('news=all, bbc-sport completed')
         # sky-sport
         sky_data = rss_feed.get_skysports_feed(5)
         carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
+        print('news=all, sky-sports completed')
         # guardian
         guardian_data = rss_feed.get_guardian_feed(5)
         carousel_template.contents.append(
             football_news.get_news_bubble("#09508D", guardian_data, header_text_color="#ffffff"))
+        print('news=all, guardian completed')
         # mirror
         mirror_data = rss_feed.get_mirror_feed(5)
         carousel_template.contents.append(
             football_news.get_news_bubble("#E80E0D", mirror_data, header_text_color="#ffffff"))
+        print('news=all, mirror completed')
         # goal-com
         goal_data = rss_feed.get_goal_feed(5)
         carousel_template.contents.append(
             football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
+        print('news=all, goal-com completed')
         # shotongoal
-        shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
+        # shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
+        # carousel_template.contents.append(
+        #     football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
+        # print('news=all, shotongoal completed')
         # soccersuck
         soccersuck_data = rss_feed.get_soccersuck_feed(5)
         carousel_template.contents.append(
             football_news.get_news_bubble("#197F4D", soccersuck_data))
+        print('news=all, soccersuck completed')
 
         line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='AllNews', contents=carousel_template))
 
