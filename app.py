@@ -130,6 +130,7 @@ def bind_default_rich_menu(event):
 @handler.add(PostbackEvent)
 def handle_postback(event):
     if event.postback.data == 'news=all':
+        print('handle_postback: news=all')
         carousel_template = CarouselContainer()
         # bbc-sport
         bbc_data = rss_feed.get_bbc_feed(5)
@@ -137,10 +138,6 @@ def handle_postback(event):
         # sky-sport
         sky_data = rss_feed.get_skysports_feed(5)
         carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
-        # goal-com
-        goal_data = rss_feed.get_goal_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
         # guardian
         guardian_data = rss_feed.get_guardian_feed(5)
         carousel_template.contents.append(
@@ -149,6 +146,10 @@ def handle_postback(event):
         mirror_data = rss_feed.get_mirror_feed(5)
         carousel_template.contents.append(
             football_news.get_news_bubble("#E80E0D", mirror_data, header_text_color="#ffffff"))
+        # goal-com
+        goal_data = rss_feed.get_goal_feed(5)
+        carousel_template.contents.append(
+            football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
         # shotongoal
         shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
         carousel_template.contents.append(
