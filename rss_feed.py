@@ -6,6 +6,8 @@ import os
 import ssl
 import json
 import re
+import uuid
+import requests
 
 BBC_RSS_FEED = 'http://feeds.bbci.co.uk/sport/football/rss.xml'
 UK_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %Z'
@@ -16,6 +18,10 @@ GUARDIAN_RSS_FEED = 'https://www.theguardian.com/football/rss'
 MIRROR_RSS_FEED = 'https://www.mirror.co.uk/sport/football/?service=rss'
 
 SHOT_ON_GOAL_RSS_FEED = 'https://www.shotongoal.com/feed/'
+
+SOCCER_SUCK_API = 'http://www.soccersuck.com/api'
+SOCCER_SUCK_TOPIC = 'http://www.soccersuck.com/boards/topic'
+SOCCER_SUCK_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 class RssFeed(object):
 
@@ -163,6 +169,65 @@ class RssFeed(object):
                     'title': entry['title'],
                     'link': entry['link'],
                     'publish_date': mktime(entry['published_parsed']),
+                    'image_url': url
+                }
+            )
+        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        return data
+
+    def _get_access_token(self):
+        url = SOCCER_SUCK_API + '/accessToken'
+        payload = {
+            'secret_key': 'devtab',
+            'device_name': 'Xiaomi Mi Pad',
+            'device_version': '4.4.4',
+            'device_os': 'android',
+            'unique_id': str(uuid.uuid4()).split('-')[0]
+        }
+        response = requests.post(url, data=payload)
+        return response.json()['data']['access_token']
+
+    def _check_image_url(self, image_url):
+        default_url = "https://is3-ssl.mzstatic.com/image/thumb/Purple118/v4/5a/06/" \
+                   "49/5a06491d-2fe1-4805-8474-f3ebdc610266/source/512x512bb.jpg"
+        try:
+            if str(image_url.startswith('http:')):
+                image_url = image_url.replace('http:', 'https:')
+            if '[' in image_url or ']' in image_url:
+                return default_url
+            r = requests.get(image_url)
+            if r.status_code == 200:
+                return image_url
+            else:
+                print("can not get image url: {0}".format(image_url))
+                return default_url
+        except Exception:
+            print("can not get image url: {0}".format(image_url))
+            return default_url
+
+    def get_soccersuck_feed(self, limit):
+        access_token = self._get_access_token()
+        url = SOCCER_SUCK_API + '/latestnews'
+        payload = {
+            'limit': limit,
+            'offset': '0',
+            'access_token': access_token
+        }
+        response = requests.post(url, data=payload)
+        resp_json = response.json()
+        data = dict()
+        data['feed_title'] = 'Soccersuck'
+        data['feed_link'] = 'http://soccersuck.com'
+        data['feed_date'] = int(time())
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = resp_json['data']['data'][index]
+            url = self._check_image_url(entry['image'])
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': SOCCER_SUCK_TOPIC + '/' + entry["id"],
+                    'publish_date': self._convert_datetime_to_epoch(entry['date'], SOCCER_SUCK_DATE_FORMAT),
                     'image_url': url
                 }
             )

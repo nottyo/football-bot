@@ -34,7 +34,7 @@ class FootballNews(object):
                         "text": data["feed_title"],
                         "weight": "bold",
                         "color": header_text_color,
-                        "size": "sm",
+                        "size": "md",
                         "action": {
                             "type": "uri",
                             "uri": data["feed_link"]

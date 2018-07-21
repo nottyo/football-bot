@@ -2,3 +2,6 @@ feedparser==5.2.1
 line-bot-sdk==1.7.2
 pytz==2018.5
 beautifulsoup4==4.6
+requests==2.19.1
+gunicorn==19.8.1
+codecov==2.0.15
