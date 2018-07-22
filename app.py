@@ -147,7 +147,7 @@ def handle_postback(event):
         print('news=all, sky-sports completed')
         # dailymail
         data = rss_feed.get_daily_mail_feed(5)
-        result = football_news.get_news_bubble("#ffffff", data)
+        carousel_template.contents.append(football_news.get_news_bubble("#ffffff", data))
         print('news=all, dailymail completed')
         # guardian
         guardian_data = rss_feed.get_guardian_feed(5)
