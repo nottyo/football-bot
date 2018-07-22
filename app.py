@@ -5,6 +5,7 @@ import json
 import feedparser
 from rss_feed import RssFeed
 from football_news import FootballNews
+from football_api import FootballApi
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -34,6 +35,7 @@ from linebot.models import (
 app = Flask(__name__)
 rss_feed = RssFeed()
 football_news = FootballNews()
+football_api = FootballApi()
 
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
@@ -48,8 +50,20 @@ line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
 
 MAIN_MENU_CHAT_BAR = 'MainMenu'
-LEAGUES_CHAT_BAR = 'Leagues'
+RESULTS_CHAT_BAR = 'Results'
+FIXTURES_CHAT_BAR = 'Fixtures'
+TEAM_NEWS_CHAT_BAR = 'Team News'
 TEAM_CHAT_BAR = 'Team'
+STANDINGS_CHAT_BAR = 'Standings'
+
+fixtures_header_color = {
+    'pl': '#3D185B',
+    'ucl': '#231F20',
+    'laliga': '#FF7D01',
+    'bundesliga': '#D20514',
+    'calcio': '#098D37'
+}
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -120,14 +134,11 @@ def get_soccersuck_news(limit):
     data = rss_feed.get_soccersuck_feed(int(limit))
     return jsonify(data)
 
+
 @app.route('/news/dailymail/<limit>')
 def get_dailymail_news(limit):
     data = rss_feed.get_daily_mail_feed(int(limit))
     return jsonify(data)
-
-
-def bind_default_rich_menu(event):
-    _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
 
 
 def get_all_news(reply_token):
@@ -179,26 +190,150 @@ def _transition_rich_menu(user_id, to):
             line_bot_api.link_rich_menu_to_user(user_id, rich_menu.rich_menu_id)
 
 
-def handle_leagues(event):
-    # transition rich menu to leagues
-    _transition_rich_menu(event.source.user_id, LEAGUES_CHAT_BAR)
+def handle_fixtures(event):
+    print('handle_fixtures')
+    data = event.postback.data
+    league_name = str(data).split('=')[1]
+    fixtures_data = football_api.get_fixtures(league_name)
+    print(json.dumps(fixtures_data))
+    if len(fixtures_data) > 3:
+        # carousel template
+        carousel_container = CarouselContainer()
+        for date, data in fixtures_data.items():
+            print('date: {}'.format(date))
+            print('data: {}'.format(data))
+            bubble = {
+                "type": "bubble",
+                "styles": {
+                    "header": {
+                        "backgroundColor": fixtures_header_color[league_name]
+                    },
+                    "body": {
+                        "separator": True
+                    }
+                },
+                "header": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                        {
+                            "type": "text",
+                            "weight": "bold",
+                            "text": "{0} - Matchday #{1}".format(fixtures_data['competition_name'], fixtures_data['match_day']),
+                            "color": "#ffffff"
+                        }
+                    ]
+                },
+                "body": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "spacing": "sm",
+                    "contents": [
+                        {
+                            "type": "text",
+                            "text": date,
+                            "size": "sm",
+                            "weight": "bold",
+                            "align": "center"
+                        },
+                        {
+                            "type": "separator"
+                        }
+                    ]
+                }
+            }
+            bubble_contents = bubble['body']['contents']
+            if isinstance(data, list):
+                for match in data:
+                    bubble_contents.append(
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "spacing": "sm",
+                            "contents": [
+                                {
+                                    "type": "text",
+                                    "size": "xxs",
+                                    "text": match['homeTeam']['name'],
+                                    "flex": 3,
+                                    "wrap": True,
+                                    "action": {
+                                        "type": "postback",
+                                        "data": "team_id={0}".format(match['homeTeam']['id'])
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "size": "xxs",
+                                    "text": match['match_time'],
+                                    "flex": 1,
+                                    "action": {
+                                        "type": "postback",
+                                        "data": "match_id={0}".format(match['match_id'])
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "size": "xxs",
+                                    "text": match['awayTeam']['name'],
+                                    "flex": 3,
+                                    "wrap": True,
+                                    "action": {
+                                        "type": "postback",
+                                        "data": "team_id={0}".format(match['awayTeam']['id'])
+                                    }
+                                }
+                            ]
+                        }
+                    )
+                carousel_container.contents.append(bubble)
+
+        line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Fixtures',
+                                                                               contents=carousel_container))
+
+    if len(fixtures_data) == 3:
+        # just bubble
+        print('just bubble')
+
+
+
+
+def handle_results(event):
+    print('handle_results')
 
 
 def handle_teams(event):
-    # transition rich menu to teams
-    _transition_rich_menu(event.source.user_id, TEAM_CHAT_BAR)
+    print('handle_teams')
+
+
+def handle_team_news(event):
+    print('handle_team_news')
+
+
+def handle_standings(event):
+    print('handle_standings')
 
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
-    if event.postback.data == 'news=all':
+    data = event.postback.data
+    print('postback.data: {}'.format(data))
+    if data == 'news=all':
         get_all_news(event.reply_token)
-    if 'go=league' in event.postback.data:
-        handle_leagues(event)
-    if 'go=team' in event.postback.data:
-        handle_teams(event)
-    if event.postback.data == 'go=back':
-        bind_default_rich_menu(event)
+    if data == 'go=results':
+        _transition_rich_menu(event.source.user_id, RESULTS_CHAT_BAR)
+    if data == 'go=fixtures':
+        _transition_rich_menu(event.source.user_id, FIXTURES_CHAT_BAR)
+    if data == 'go=team_news':
+        _transition_rich_menu(event.source.user_id, TEAM_NEWS_CHAT_BAR)
+    if data == 'go=team':
+        _transition_rich_menu(event.source.user_id, TEAM_CHAT_BAR)
+    if data == 'go=standings':
+        _transition_rich_menu(event.source.user_id, STANDINGS_CHAT_BAR)
+    if 'fixtures=' in data:
+        handle_fixtures(event)
+    if data == 'go=back':
+        _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
 
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -237,7 +372,7 @@ def handle_text_message(event):
 
 @handler.add(FollowEvent)
 def handle_follow(event):
-    bind_default_rich_menu(event)
+    _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
 
 
 if __name__ == '__main__':
