@@ -47,6 +47,9 @@ if channel_access_token is None:
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
 
+MAIN_MENU_CHAT_BAR = 'MainMenu'
+LEAGUES_CHAT_BAR = 'Leagues'
+TEAM_CHAT_BAR = 'Team'
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -124,66 +127,84 @@ def get_dailymail_news(limit):
 
 
 def bind_default_rich_menu(event):
-    if isinstance(event.source, SourceUser):
-        id = event.source.user_id
-        rich_menu_list = line_bot_api.get_rich_menu_list()
-        for rich_menu in rich_menu_list:
-            if rich_menu.chat_bar_text == 'MainMenu':
-                line_bot_api.link_rich_menu_to_user(id, rich_menu.rich_menu_id)
+    _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
+
+
+def get_all_news(reply_token):
+    print('handle_postback: news=all')
+    carousel_template = CarouselContainer()
+    # bbc-sport
+    bbc_data = rss_feed.get_bbc_feed(5)
+    carousel_template.contents.append(football_news.get_news_bubble("#FEE63E", bbc_data))
+    print('news=all, bbc-sport completed')
+    # sky-sport
+    sky_data = rss_feed.get_skysports_feed(5)
+    carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
+    print('news=all, sky-sports completed')
+    # guardian
+    guardian_data = rss_feed.get_guardian_feed(5)
+    carousel_template.contents.append(
+        football_news.get_news_bubble("#09508D", guardian_data, header_text_color="#ffffff"))
+    print('news=all, guardian completed')
+    # mirror
+    mirror_data = rss_feed.get_mirror_feed(5)
+    carousel_template.contents.append(
+        football_news.get_news_bubble("#E80E0D", mirror_data, header_text_color="#ffffff"))
+    print('news=all, mirror completed')
+    # goal-com
+    goal_data = rss_feed.get_goal_feed(5)
+    carousel_template.contents.append(
+        football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
+    print('news=all, goal-com completed')
+    # shotongoal
+    shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
+    carousel_template.contents.append(
+        football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
+    print('news=all, shotongoal completed')
+    # soccersuck
+    soccersuck_data = rss_feed.get_soccersuck_feed(5)
+    carousel_template.contents.append(
+        football_news.get_news_bubble("#197F4D", soccersuck_data))
+    print('news=all, soccersuck completed')
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage(alt_text='AllNews', contents=carousel_template))
+
+
+def _transition_rich_menu(user_id, to):
+    rich_menu_list = line_bot_api.get_rich_menu_list()
+    line_bot_api.unlink_rich_menu_from_user(user_id)
+    for rich_menu in rich_menu_list:
+        if rich_menu.chat_bar_text == to:
+            print('linking richmenu: \"{0}\" to user_id: {1}'.format(rich_menu.chat_bar_text, user_id))
+            line_bot_api.link_rich_menu_to_user(user_id, rich_menu.rich_menu_id)
+
+
+def handle_leagues(event):
+    # transition rich menu to leagues
+    _transition_rich_menu(event.source.user_id, LEAGUES_CHAT_BAR)
+
+
+def handle_teams(event):
+    # transition rich menu to teams
+    _transition_rich_menu(event.source.user_id, TEAM_CHAT_BAR)
 
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
     if event.postback.data == 'news=all':
-        print('handle_postback: news=all')
-        carousel_template = CarouselContainer()
-        # bbc-sport
-        bbc_data = rss_feed.get_bbc_feed(5)
-        carousel_template.contents.append(football_news.get_news_bubble("#FEE63E", bbc_data))
-        print('news=all, bbc-sport completed')
-        # sky-sport
-        sky_data = rss_feed.get_skysports_feed(5)
-        carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
-        print('news=all, sky-sports completed')
-        # dailymail
-        dailymail_data = rss_feed.get_daily_mail_feed(5)
-        carousel_template.contents.append(football_news.get_news_bubble("#ffffff", dailymail_data))
-        print('news=all, dailymail completed')
-        # guardian
-        guardian_data = rss_feed.get_guardian_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#09508D", guardian_data, header_text_color="#ffffff"))
-        print('news=all, guardian completed')
-        # mirror
-        mirror_data = rss_feed.get_mirror_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#E80E0D", mirror_data, header_text_color="#ffffff"))
-        print('news=all, mirror completed')
-        # goal-com
-        goal_data = rss_feed.get_goal_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
-        print('news=all, goal-com completed')
-        # shotongoal
-        shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
-        print('news=all, shotongoal completed')
-        # soccersuck
-        soccersuck_data = rss_feed.get_soccersuck_feed(5)
-        carousel_template.contents.append(
-            football_news.get_news_bubble("#197F4D", soccersuck_data))
-        print('news=all, soccersuck completed')
-
-        line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='AllNews', contents=carousel_template))
-
+        get_all_news(event.reply_token)
+    if 'go=league' in event.postback.data:
+        handle_leagues(event)
+    if 'go=team' in event.postback.data:
+        handle_teams(event)
+    if event.postback.data == 'go=back':
+        bind_default_rich_menu(event)
 
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
     text = event.message.text
     result = ''
-    bind_default_rich_menu(event)
 
     if text.lower() == 'news=bbc-sport':
         data = rss_feed.get_bbc_feed(5)
