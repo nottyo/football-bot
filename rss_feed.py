@@ -23,6 +23,8 @@ SOCCER_SUCK_API = 'http://www.soccersuck.com/api'
 SOCCER_SUCK_TOPIC = 'http://www.soccersuck.com/boards/topic'
 SOCCER_SUCK_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+DAILY_MAIL_RSS_FEED = 'http://www.dailymail.co.uk/sport/football/index.rss'
+
 class RssFeed(object):
 
     def _convert_datetime_to_epoch(self, datetime_str, date_format):
@@ -58,6 +60,27 @@ class RssFeed(object):
 
     def get_skysports_feed(self, limit):
         d = feedparser.parse(SKY_SPORTS_RSS_FEED)
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.image.link
+        data['feed_date'] = mktime(d.feed.updated_parsed)
+        data['entries'] = []
+        d.entries = sorted(d['entries'], key=lambda k: k['published_parsed'], reverse=True)
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': mktime(entry['published_parsed']),
+                    'image_url': self._format_image_url(entry['links'][1]['href'])
+                }
+            )
+        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        return data
+
+    def get_daily_mail_feed(self, limit):
+        d = feedparser.parse(DAILY_MAIL_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
         data['feed_link'] = d.feed.image.link
@@ -232,3 +255,4 @@ class RssFeed(object):
             )
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
         return data
+

@@ -117,6 +117,11 @@ def get_soccersuck_news(limit):
     data = rss_feed.get_soccersuck_feed(int(limit))
     return jsonify(data)
 
+@app.route('/news/dailymail/<limit>')
+def get_dailymail_news(limit):
+    data = rss_feed.get_daily_mail_feed(int(limit))
+    return jsonify(data)
+
 
 def bind_default_rich_menu(event):
     if isinstance(event.source, SourceUser):
@@ -140,6 +145,10 @@ def handle_postback(event):
         sky_data = rss_feed.get_skysports_feed(5)
         carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
         print('news=all, sky-sports completed')
+        # dailymail
+        data = rss_feed.get_daily_mail_feed(5)
+        result = football_news.get_news_bubble("#ffffff", data)
+        print('news=all, dailymail completed')
         # guardian
         guardian_data = rss_feed.get_guardian_feed(5)
         carousel_template.contents.append(
@@ -197,6 +206,9 @@ def handle_text_message(event):
     if text.lower() == 'news=soccersuck':
         data = rss_feed.get_soccersuck_feed(5)
         result = football_news.get_news_bubble("#197F4D", data)
+    if text.lower() == 'news=dailymail':
+        data = rss_feed.get_daily_mail_feed(5)
+        result = football_news.get_news_bubble("#ffffff", data)
 
     if isinstance(result, BubbleContainer):
         line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='news', contents=result))
