@@ -98,6 +98,7 @@ class RssFeed(object):
                 }
             )
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        print('dailymail_data: {0}'.format(data))
         return data
 
     def get_goal_feed(self, limit):
