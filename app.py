@@ -307,6 +307,22 @@ def handle_teams(event):
 
 
 def handle_team_news(event):
+    data = event.postback.data
+    if data == 'team_news=manutd':
+        manutd_news = rss_feed.get_manutd_feed(5)
+        manutd_result = football_news.get_news_bubble("#B91B00", manutd_news)
+        line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Manchester United News', contents=manutd_result))
+    if data == 'team_news=arsenal':
+        arsenal_news = rss_feed.get_arsenal_feed(5)
+        arsenal_result = football_news.get_news_bubble("#EA1F23", arsenal_news, "#ffffff")
+        line_bot_api.reply_message(event.reply_token,
+                                   messages=FlexSendMessage(alt_text='Arsenal News', contents=arsenal_result))
+    if data == 'team_news=liverpool':
+        liverpool_news = rss_feed.get_liverpool_feed(5)
+        liverpool_result = football_news.get_news_bubble("#D11217", liverpool_news, "#ffffff")
+        line_bot_api.reply_message(event.reply_token,
+                                   messages=FlexSendMessage(alt_text='Liverpool News', contents=liverpool_result))
+
     print('handle_team_news')
 
 
@@ -332,6 +348,8 @@ def handle_postback(event):
         _transition_rich_menu(event.source.user_id, STANDINGS_CHAT_BAR)
     if 'fixtures=' in data:
         handle_fixtures(event)
+    if 'team_news=' in data:
+        handle_team_news(event)
     if data == 'go=back':
         _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
 

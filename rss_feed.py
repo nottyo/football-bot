@@ -25,6 +25,11 @@ SOCCER_SUCK_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 DAILY_MAIL_RSS_FEED = 'http://www.dailymail.co.uk/sport/football/index.rss'
 
+# MANUTD_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/manchester-united/rss'
+MANUTD_RSS_FEED = 'https://metro.co.uk/tag/manchester-united-fc/feed/'
+ARSENAL_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/arsenal/rss'
+LIVERPOOL_RSS_FEED = 'https://www.liverpoolfc.com/news.rss'
+
 class RssFeed(object):
 
     def _convert_datetime_to_epoch(self, datetime_str, date_format):
@@ -252,6 +257,73 @@ class RssFeed(object):
                     'link': SOCCER_SUCK_TOPIC + '/' + entry["id"],
                     'publish_date': self._convert_datetime_to_epoch(entry['date'], SOCCER_SUCK_DATE_FORMAT),
                     'image_url': url
+                }
+            )
+        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        return data
+
+    def get_manutd_feed(self, limit):
+        if hasattr(ssl, '_create_unverified_context'):
+            ssl._create_default_https_context = ssl._create_unverified_context
+        d = feedparser.parse(MANUTD_RSS_FEED)
+        print(json.dumps(d))
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.link
+        data['feed_date'] = mktime(d.feed.updated_parsed)
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': mktime(entry['updated_parsed']),
+                    'image_url': entry['media_content'][1]['url']
+                }
+            )
+        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        return data
+
+    def get_arsenal_feed(self, limit):
+        if hasattr(ssl, '_create_unverified_context'):
+            ssl._create_default_https_context = ssl._create_unverified_context
+        d = feedparser.parse(ARSENAL_RSS_FEED)
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.link
+        data['feed_date'] = mktime(d.feed.updated_parsed)
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': mktime(entry['updated_parsed']),
+                    'image_url': entry['media_content'][1]['url']
+                }
+            )
+        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        return data
+
+    def get_liverpool_feed(self, limit):
+        if hasattr(ssl, '_create_unverified_context'):
+            ssl._create_default_https_context = ssl._create_unverified_context
+        d = feedparser.parse(LIVERPOOL_RSS_FEED)
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.link
+        data['feed_date'] = time()
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': mktime(entry['published_parsed']),
+                    'image_url': entry['thumb']
                 }
             )
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
