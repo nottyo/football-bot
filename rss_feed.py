@@ -2,6 +2,7 @@ import feedparser
 from datetime import datetime
 from time import mktime, time
 from bs4 import BeautifulSoup
+from requests_xml import XMLSession
 import os
 import ssl
 import json
@@ -26,9 +27,12 @@ SOCCER_SUCK_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 DAILY_MAIL_RSS_FEED = 'http://www.dailymail.co.uk/sport/football/index.rss'
 
 # MANUTD_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/manchester-united/rss'
-MANUTD_RSS_FEED = 'https://metro.co.uk/tag/manchester-united-fc/feed/'
+# MANUTD_RSS_FEED = 'https://metro.co.uk/tag/manchester-united-fc/feed/'
+MANUTD_RSS_FEED = 'https://www.manutd.com/Feeds/NewsSecondRSSFeed'
 ARSENAL_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/arsenal/rss'
 LIVERPOOL_RSS_FEED = 'https://www.liverpoolfc.com/news.rss'
+
+session = XMLSession()
 
 class RssFeed(object):
 
@@ -265,24 +269,26 @@ class RssFeed(object):
     def get_manutd_feed(self, limit):
         if hasattr(ssl, '_create_unverified_context'):
             ssl._create_default_https_context = ssl._create_unverified_context
-        d = feedparser.parse(MANUTD_RSS_FEED)
-        print(json.dumps(d))
+        resp = session.get(MANUTD_RSS_FEED)
         data = dict()
-        data['feed_title'] = d.feed.title
-        data['feed_link'] = d.feed.link
-        data['feed_date'] = mktime(d.feed.updated_parsed)
+        data['feed_title'] = resp.xml.xpath('//title', first=True).text
+        data['feed_link'] = 'https://www.manutd.com/en/news/latest'
+        data['feed_date'] = int(time())
         data['entries'] = []
-        for index in range(0, limit):
-            entry = d.entries[index]
-            data['entries'].append(
-                {
-                    'title': entry['title'],
-                    'link': entry['link'],
-                    'publish_date': mktime(entry['updated_parsed']),
-                    'image_url': entry['media_content'][1]['url']
-                }
-            )
-        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
+        items = resp.xml.xpath('//item')
+        for item in items:
+            if len(data['entries']) > limit-1:
+                break
+            category = item.xpath('//category')[0].text
+            if category.lower() == 'news':
+                data['entries'].append(
+                    {
+                        'title': item.xpath('//title')[0].text,
+                        'link': item.xpath('//link')[0].text,
+                        'publish_date': self._convert_datetime_to_epoch(item.xpath('//pubDate')[0].text, UK_DATE_FORMAT),
+                        'image_url': self._format_image_url(item.xpath('//image')[3].text)
+                    }
+                )
         return data
 
     def get_arsenal_feed(self, limit):
@@ -329,3 +335,7 @@ class RssFeed(object):
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
         return data
 
+
+if __name__ == '__main__':
+    rss = RssFeed()
+    rss.get_manutd_feed(5)
