@@ -201,9 +201,34 @@ class FootballApi(object):
 
         return data
 
+    def get_standings(self, league_name):
+        url = base_url + '/competitions/' + league_competitions[league_name] + '/standings'
+        response = requests.get(url, headers=headers)
+        resp_json = response.json()
+        data = dict()
+        data['competition_name'] = resp_json['competition']['name']
+        data['teams'] = []
+        for standing in resp_json['standings']:
+            if standing['type'] == 'TOTAL':
+                for table in standing['table']: 
+                    data['teams'].append(
+                        {
+                            'position': str(table['position']),
+                            'team_name': self._normalize_team_name(table['team']['name']),
+                            'team_id': table['team']['id'],
+                            'played': str(table['playedGames']),
+                            'won': str(table['won']),
+                            'draw': str(table['draw']),
+                            'lost': str(table['lost']),
+                            'gd': str(table['goalDifference']),
+                            'pts': str(table['points'])
+                        }
+                    )
+        return data
+
 if __name__ == '__main__':
     football_api = FootballApi()
-    data = football_api.get_results('pl', 7)
+    data = football_api.get_standings('pl')
     print(json.dumps(data))
 
 

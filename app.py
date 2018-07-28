@@ -535,6 +535,124 @@ def handle_team_news(event):
 
 def handle_standings(event):
     print('handle_standings')
+    data = event.postback.data
+    league_name = str(data).split('=')[1]
+    standings_data = football_api.get_standings(league_name)
+    if len(standings_data['teams']) == 0:
+        line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text='No Standings Data'))
+        return
+    carousel = CarouselContainer()
+    pages = [standings_data['teams'][i: i+10] for i in range(0, len(standings_data['teams']), 10)]
+    for page in pages:
+        bubble = {
+            "type": "bubble",
+            "styles": {
+                "header": {
+                "backgroundColor": fixtures_header_color[league_name]
+                },
+                "body": {
+                "separator": True
+                }
+            },
+            "header": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "{0} - Standings".format(standings_data['competition_name']),
+                        "color": "#ffffff"
+                    }
+                ]
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "#",
+                                "size": "xs",
+                                "weight": "bold",
+                                "flex": 2
+                            },
+                            {
+                                "type": "text",
+                                "text": "Team",
+                                "size": "xs",
+                                "weight": "bold",
+                                "flex": 11
+                            },
+                            {
+                                "type": "text",
+                                "text": "P",
+                                "size": "xs",
+                                "weight": "bold",
+                                "flex": 2
+                            },
+                            {
+                                "type": "text",
+                                "text": "Pts",
+                                "size": "xs",
+                                "weight": "bold",
+                                "flex": 3
+                            }
+                        ]
+                    },
+                    {
+                        "type": "separator"
+                    }
+                ]
+            }
+        }
+        bubble_body_contents = bubble['body']['contents']
+        for team in page:
+            bubble_body_contents.append(
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {
+                            "type": "text",
+                            "text": team['position'],
+                            "size": "xxs",
+                            "flex": 2
+                        },
+                        {
+                            "type": "text",
+                            "text": team['team_name'],
+                            "size": "xxs",
+                            "wrap": True,
+                            "flex": 11,
+                            "action": {
+                                "type": "postback",
+                                "data": "team={}".format(team['team_id'])
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": team['played'],
+                            "size": "xxs",
+                            "flex": 2
+                        },
+                        {
+                            "type": "text",
+                            "text": team['pts'],
+                            "size": "xxs",
+                            "flex": 3
+                        }
+                    ]
+                }
+            )
+            bubble_container = BubbleContainer.new_from_json_dict(bubble)
+        carousel.contents.append(bubble_container)
+    line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='Standings', contents=carousel))
+
 
 def handle_matches_by_team(event):
     print('handle_matches_by_team')
@@ -645,6 +763,8 @@ def handle_postback(event):
         handle_results(event)
     if 'fixtures=' in data:
         handle_fixtures(event)
+    if 'standings=' in data:
+        handle_standings(event)
     if 'matches_by_team=' in data:
         handle_matches_by_team(event)
     elif 'team_news=' in data:
