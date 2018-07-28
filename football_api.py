@@ -1,5 +1,6 @@
 import requests
 import json
+from dateutil.relativedelta import relativedelta
 from datetime import timezone, datetime
 
 
@@ -16,6 +17,10 @@ headers = {
 }
 
 base_url = 'http://api.football-data.org/v2'
+date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+with open('emoji_flags.json') as f:
+    emoji_flags = json.load(f)
 
 
 class FootballApi(object):
@@ -46,16 +51,16 @@ class FootballApi(object):
 
     def _normalize_team_name(self, team_name):
         team_name = str(team_name).replace('FC', '')
-        team_name = team_name.replace('AFC', '')
-        team_name = team_name.replace('Wanderers', '')
-        team_name = team_name.replace('& Hove Albion', '')
-        team_name = team_name.replace('CF', '')
-        team_name = team_name.replace('RCD', '')
-        team_name = team_name.replace('RC', '')
-        team_name = team_name.replace('SD', '')
-        team_name = team_name.replace('de Barcelona', '')
-        team_name = team_name.replace('La Coruña', '')
-        team_name = team_name.replace('de Fútbol', '')
+        # team_name = team_name.replace('AFC', '')
+        # team_name = team_name.replace('Wanderers', '')
+        # team_name = team_name.replace('& Hove Albion', '')
+        # team_name = team_name.replace('CF', '')
+        # team_name = team_name.replace('RCD', '')
+        # team_name = team_name.replace('RC', '')
+        # team_name = team_name.replace('SD', '')
+        # team_name = team_name.replace('de Barcelona', '')
+        # team_name = team_name.replace('La Coruña', '')
+        # team_name = team_name.replace('de Fútbol', '')
         return team_name.strip()
 
     def get_fixtures(self, league_name):
@@ -97,5 +102,46 @@ class FootballApi(object):
                 )
 
         return data
+
+    def _get_age(self, dob_str):
+        if dob_str is not None:
+            current_date = datetime.now()
+            dob_date = datetime.strptime(dob_str, date_format)
+            return relativedelta(current_date, dob_date).years
+        return 'N/A'
+
+    def _get_emoji_flag(self, country):
+        for flag in emoji_flags:
+            if country.lower() in flag['name'].lower():
+                return flag['emoji']
+        return ''
+
+    def get_team(self, team_id):
+        url = base_url + '/teams/{0}'.format(team_id)
+        response = requests.get(url, headers=headers)
+        resp_json = response.json()
+        data = dict()
+        data['team_name'] = resp_json['name']
+        data['team_website'] = resp_json['website']
+        data['players'] = []
+        for player in resp_json['squad']:
+            if player['role'] == 'PLAYER':
+                data['players'].append(
+                    {
+                        'name': '{0} {1}'.format(player['name'], self._get_emoji_flag(player['nationality'])),
+                        'position': player['position'],
+                        'age': self._get_age(player['dateOfBirth'])
+                    }
+                )
+            if player['role'] == 'COACH':
+                data['head_coach'] = player['name']
+        data['players'] = sorted(data['players'], key=lambda k: k['position'])
+        return data
+
+
+if __name__ == '__main__':
+    football_api = FootballApi()
+    data = football_api.get_team('66')
+    print(json.dumps(data))
 
 

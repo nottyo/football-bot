@@ -146,31 +146,31 @@ def get_all_news(reply_token):
     carousel_template = CarouselContainer()
     # bbc-sport
     bbc_data = rss_feed.get_bbc_feed(5)
-    carousel_template.contents.append(football_news.get_news_bubble("#FEE63E", bbc_data))
+    carousel_template.contents.append(football_news.get_news_bubble("#FEE63E", bbc_data, header_text_color="#000000"))
     print('news=all, bbc-sport completed')
     # sky-sport
     sky_data = rss_feed.get_skysports_feed(5)
-    carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data, header_text_color="#ffffff"))
+    carousel_template.contents.append(football_news.get_news_bubble("#BB0211", sky_data))
     print('news=all, sky-sports completed')
     # guardian
     guardian_data = rss_feed.get_guardian_feed(5)
     carousel_template.contents.append(
-        football_news.get_news_bubble("#09508D", guardian_data, header_text_color="#ffffff"))
+        football_news.get_news_bubble("#09508D", guardian_data))
     print('news=all, guardian completed')
     # mirror
     mirror_data = rss_feed.get_mirror_feed(5)
     carousel_template.contents.append(
-        football_news.get_news_bubble("#E80E0D", mirror_data, header_text_color="#ffffff"))
+        football_news.get_news_bubble("#E80E0D", mirror_data))
     print('news=all, mirror completed')
     # goal-com
     goal_data = rss_feed.get_goal_feed(5)
     carousel_template.contents.append(
-        football_news.get_news_bubble("#091F2C", goal_data, header_text_color="#ffffff"))
+        football_news.get_news_bubble("#091F2C", goal_data))
     print('news=all, goal-com completed')
     # shotongoal
     shotongoal_data = rss_feed.get_shot_on_goal_feed(5)
     carousel_template.contents.append(
-        football_news.get_news_bubble("#1A1A1A", shotongoal_data, header_text_color="#ffffff"))
+        football_news.get_news_bubble("#1A1A1A", shotongoal_data))
     print('news=all, shotongoal completed')
     # soccersuck
     soccersuck_data = rss_feed.get_soccersuck_feed(5)
@@ -195,107 +195,98 @@ def handle_fixtures(event):
     data = event.postback.data
     league_name = str(data).split('=')[1]
     fixtures_data = football_api.get_fixtures(league_name)
-    print(json.dumps(fixtures_data))
-    if len(fixtures_data) > 3:
-        # carousel template
-        carousel_container = CarouselContainer()
-        for date, data in fixtures_data.items():
-            print('date: {}'.format(date))
-            print('data: {}'.format(data))
-            bubble = {
-                "type": "bubble",
-                "styles": {
-                    "header": {
-                        "backgroundColor": fixtures_header_color[league_name]
-                    },
-                    "body": {
-                        "separator": True
-                    }
-                },
+    # carousel template
+    carousel_container = CarouselContainer()
+    for date, data in fixtures_data.items():
+        bubble = {
+            "type": "bubble",
+            "styles": {
                 "header": {
-                    "type": "box",
-                    "layout": "vertical",
-                    "contents": [
-                        {
-                            "type": "text",
-                            "weight": "bold",
-                            "text": "{0} - Matchday #{1}".format(fixtures_data['competition_name'], fixtures_data['match_day']),
-                            "color": "#ffffff"
-                        }
-                    ]
+                    "backgroundColor": fixtures_header_color[league_name]
                 },
                 "body": {
-                    "type": "box",
-                    "layout": "vertical",
-                    "spacing": "sm",
-                    "contents": [
-                        {
-                            "type": "text",
-                            "text": date,
-                            "size": "sm",
-                            "weight": "bold",
-                            "align": "center"
-                        },
-                        {
-                            "type": "separator"
-                        }
-                    ]
+                    "separator": True
                 }
+            },
+            "header": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "weight": "bold",
+                        "text": "{0} - Matchday #{1}".format(fixtures_data['competition_name'],
+                                                             fixtures_data['match_day']),
+                        "color": "#ffffff"
+                    }
+                ]
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": date,
+                        "size": "sm",
+                        "weight": "bold",
+                        "align": "center"
+                    },
+                    {
+                        "type": "separator"
+                    }
+                ]
             }
-            bubble_contents = bubble['body']['contents']
-            if isinstance(data, list):
-                for match in data:
-                    bubble_contents.append(
-                        {
-                            "type": "box",
-                            "layout": "horizontal",
-                            "spacing": "sm",
-                            "contents": [
-                                {
-                                    "type": "text",
-                                    "size": "xxs",
-                                    "text": match['homeTeam']['name'],
-                                    "flex": 3,
-                                    "wrap": True,
-                                    "action": {
-                                        "type": "postback",
-                                        "data": "team_id={0}".format(match['homeTeam']['id'])
-                                    }
-                                },
-                                {
-                                    "type": "text",
-                                    "size": "xxs",
-                                    "text": match['match_time'],
-                                    "flex": 1,
-                                    "action": {
-                                        "type": "postback",
-                                        "data": "match_id={0}".format(match['match_id'])
-                                    }
-                                },
-                                {
-                                    "type": "text",
-                                    "size": "xxs",
-                                    "text": match['awayTeam']['name'],
-                                    "flex": 3,
-                                    "wrap": True,
-                                    "action": {
-                                        "type": "postback",
-                                        "data": "team_id={0}".format(match['awayTeam']['id'])
-                                    }
+        }
+        bubble_contents = bubble['body']['contents']
+        if isinstance(data, list):
+            for match in data:
+                bubble_contents.append(
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "spacing": "sm",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "size": "xxs",
+                                "text": match['homeTeam']['name'],
+                                "flex": 3,
+                                "wrap": True,
+                                "action": {
+                                    "type": "postback",
+                                    "data": "team={0}".format(match['homeTeam']['id'])
                                 }
-                            ]
-                        }
-                    )
-                carousel_container.contents.append(bubble)
+                            },
+                            {
+                                "type": "text",
+                                "size": "xxs",
+                                "text": match['match_time'],
+                                "flex": 1,
+                                "action": {
+                                    "type": "postback",
+                                    "data": "match={0}".format(match['match_id'])
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "size": "xxs",
+                                "text": match['awayTeam']['name'],
+                                "flex": 3,
+                                "wrap": True,
+                                "action": {
+                                    "type": "postback",
+                                    "data": "team={0}".format(match['awayTeam']['id'])
+                                }
+                            }
+                        ]
+                    }
+                )
+            carousel_container.contents.append(bubble)
 
-        line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Fixtures',
-                                                                               contents=carousel_container))
-
-    if len(fixtures_data) == 3:
-        # just bubble
-        print('just bubble')
-
-
+    line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Fixtures',
+                                                                           contents=carousel_container))
 
 
 def handle_results(event):
@@ -304,24 +295,140 @@ def handle_results(event):
 
 def handle_teams(event):
     print('handle_teams')
+    postback_data = event.postback.data
+    team_id = postback_data.split('=')[1]
+    team_data = football_api.get_team(team_id)
+    carousel = CarouselContainer()
+    pages = [team_data['players'][i: i+10] for i in range(0, len(team_data['players']), 10)]
+    for page in pages:
+        bubble = {
+            "type": "bubble",
+            "styles": {
+                "header": {
+                    "backgroundColor": "#4a4b4c"
+                }
+            },
+            "header": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": team_data["team_name"],
+                        "weight": "bold",
+                        "size": "md",
+                        "color": "#ffffff",
+                        "action": {
+                            "type": "uri",
+                            "uri": team_data["team_website"]
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "Coach: {}".format(team_data["head_coach"]),
+                        "size": "xs",
+                        "color": "#ffffff"
+                    }
+                ]
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "md",
+                "contents": [
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "Full Name",
+                                "weight": "bold",
+                                "size": "xxs",
+                                "flex": 5
+                            },
+                            {
+                                "type": "text",
+                                "text": "Position",
+                                "weight": "bold",
+                                "size": "xxs",
+                                "flex": 2
+                            },
+                            {
+                                "type": "text",
+                                "text": "Age",
+                                "weight": "bold",
+                                "size": "xxs",
+                                "flex": 1
+                            }
+                        ]
+                    },
+                    {
+                        "type": "separator"
+                    }
+                ]
+            }
+        }
+        body_contents = bubble['body']['contents']
+        for player in page:
+            body_contents.append(
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {
+                            "type": "text",
+                            "text": player['name'],
+                            "size": "xxs",
+                            "wrap": True,
+                            "flex": 5
+                        },
+                        {
+                            "type": "text",
+                            "text": player['position'],
+                            "size": "xxs",
+                            "flex": 2
+                        },
+                        {
+                            "type": "text",
+                            "text": str(player['age']),
+                            "size": "xxs",
+                            "flex": 1
+                        }
+                    ]
+                }
+            )
+            bubble_container = BubbleContainer.new_from_json_dict(bubble)
+        carousel.contents.append(bubble_container)
+    line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='Team', contents=carousel))
 
 
 def handle_team_news(event):
     data = event.postback.data
     if data == 'team_news=manutd':
         manutd_news = rss_feed.get_manutd_feed(5)
-        manutd_result = football_news.get_news_bubble("#B91B00", manutd_news)
+        manutd_result = football_news.get_news_bubble("#DC1F29", manutd_news)
         line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Manchester United News', contents=manutd_result))
     if data == 'team_news=arsenal':
         arsenal_news = rss_feed.get_arsenal_feed(5)
-        arsenal_result = football_news.get_news_bubble("#EA1F23", arsenal_news, "#ffffff")
+        arsenal_result = football_news.get_news_bubble("#EC0C1C", arsenal_news)
         line_bot_api.reply_message(event.reply_token,
                                    messages=FlexSendMessage(alt_text='Arsenal News', contents=arsenal_result))
     if data == 'team_news=liverpool':
         liverpool_news = rss_feed.get_liverpool_feed(5)
-        liverpool_result = football_news.get_news_bubble("#D11217", liverpool_news, "#ffffff")
+        liverpool_result = football_news.get_news_bubble("#C8102E", liverpool_news)
         line_bot_api.reply_message(event.reply_token,
                                    messages=FlexSendMessage(alt_text='Liverpool News', contents=liverpool_result))
+    if data == 'team_news=chelsea':
+        chelsea_news = rss_feed.get_chelsea_feed(5)
+        chelsea_result = football_news.get_news_bubble("#034694", chelsea_news)
+        line_bot_api.reply_message(event.reply_token,
+                                   messages=FlexSendMessage(alt_text='Chelsea News', contents=chelsea_result))
+    if data == 'team_news=mancity':
+        mancity_news = rss_feed.get_mancity_feed(5)
+        mancity_result = football_news.get_news_bubble("#99C5E7", mancity_news)
+        line_bot_api.reply_message(event.reply_token,
+                                   messages=FlexSendMessage(alt_text='Manchester City News', contents=mancity_result))
 
     print('handle_team_news')
 
@@ -350,6 +457,8 @@ def handle_postback(event):
         handle_fixtures(event)
     if 'team_news=' in data:
         handle_team_news(event)
+    if 'team=' in data:
+        handle_teams(event)
     if data == 'go=back':
         _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
 

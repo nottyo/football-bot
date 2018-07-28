@@ -12,7 +12,7 @@ class FootballNews(object):
     def _convert_epoch_to_str(self, epoch):
         return time.strftime(DATE_FORMAT, time.localtime(epoch))
 
-    def get_news_bubble(self, header_bg_color, data, header_text_color="#000000"):
+    def get_news_bubble(self, header_bg_color, data, header_text_color="#ffffff"):
         bubble = {
             "type": "bubble",
             "styles": {

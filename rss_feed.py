@@ -9,6 +9,7 @@ import json
 import re
 import uuid
 import requests
+import html2text
 
 BBC_RSS_FEED = 'http://feeds.bbci.co.uk/sport/football/rss.xml'
 UK_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %Z'
@@ -26,15 +27,19 @@ SOCCER_SUCK_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 DAILY_MAIL_RSS_FEED = 'http://www.dailymail.co.uk/sport/football/index.rss'
 
-# MANUTD_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/manchester-united/rss'
-# MANUTD_RSS_FEED = 'https://metro.co.uk/tag/manchester-united-fc/feed/'
 MANUTD_RSS_FEED = 'https://www.manutd.com/Feeds/NewsSecondRSSFeed'
-ARSENAL_RSS_FEED = 'https://feeds.theguardian.com/theguardian/football/arsenal/rss'
+ARSENAL_RSS_FEED = 'https://www.90min.com/teams/arsenal.rss'
 LIVERPOOL_RSS_FEED = 'https://www.liverpoolfc.com/news.rss'
+CHELSEA_RSS_FEED = 'https://www.90min.com/teams/chelsea.rss'
+MANCITY_RSS_FEED = 'https://www.90min.com/teams/manchester-city.rss'
 
 session = XMLSession()
 
 class RssFeed(object):
+
+    def __init__(self):
+        if hasattr(ssl, '_create_unverified_context'):
+            ssl._create_default_https_context = ssl._create_unverified_context
 
     def _convert_datetime_to_epoch(self, datetime_str, date_format):
         if 'BST' in datetime_str:
@@ -131,8 +136,6 @@ class RssFeed(object):
         return data
 
     def get_guardian_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         d = feedparser.parse(GUARDIAN_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
@@ -153,8 +156,6 @@ class RssFeed(object):
         return data
 
     def get_mirror_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         d = feedparser.parse(MIRROR_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
@@ -185,8 +186,6 @@ class RssFeed(object):
                'Sites-DWS-Master-Catalog/default/dw88d7b256/products/0650288_01.jpeg'
 
     def get_shot_on_goal_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         d = feedparser.parse(SHOT_ON_GOAL_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
@@ -267,8 +266,6 @@ class RssFeed(object):
         return data
 
     def get_manutd_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         resp = session.get(MANUTD_RSS_FEED)
         data = dict()
         data['feed_title'] = resp.xml.xpath('//title', first=True).text
@@ -281,9 +278,12 @@ class RssFeed(object):
                 break
             category = item.xpath('//category')[0].text
             if category.lower() == 'news':
+                title = item.xpath('//title')[0].text
+                if not title:
+                    title = html2text.html2text(item.xpath('//newstext')[0].text)
                 data['entries'].append(
                     {
-                        'title': item.xpath('//title')[0].text,
+                        'title': title,
                         'link': item.xpath('//link')[0].text,
                         'publish_date': self._convert_datetime_to_epoch(item.xpath('//pubDate')[0].text, UK_DATE_FORMAT),
                         'image_url': self._format_image_url(item.xpath('//image')[3].text)
@@ -292,13 +292,11 @@ class RssFeed(object):
         return data
 
     def get_arsenal_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         d = feedparser.parse(ARSENAL_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
         data['feed_link'] = d.feed.link
-        data['feed_date'] = mktime(d.feed.updated_parsed)
+        data['feed_date'] = int(time())
         data['entries'] = []
         for index in range(0, limit):
             entry = d.entries[index]
@@ -306,16 +304,13 @@ class RssFeed(object):
                 {
                     'title': entry['title'],
                     'link': entry['link'],
-                    'publish_date': mktime(entry['updated_parsed']),
-                    'image_url': entry['media_content'][1]['url']
+                    'publish_date': int(mktime(entry['published_parsed'])),
+                    'image_url': entry['media_thumbnail'][0]['url']
                 }
             )
-        data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
         return data
 
     def get_liverpool_feed(self, limit):
-        if hasattr(ssl, '_create_unverified_context'):
-            ssl._create_default_https_context = ssl._create_unverified_context
         d = feedparser.parse(LIVERPOOL_RSS_FEED)
         data = dict()
         data['feed_title'] = d.feed.title
@@ -335,7 +330,46 @@ class RssFeed(object):
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
         return data
 
+    def get_chelsea_feed(self, limit):
+        d = feedparser.parse(CHELSEA_RSS_FEED)
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.link
+        data['feed_date'] = int(time())
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': int(mktime(entry['published_parsed'])),
+                    'image_url': entry['media_thumbnail'][0]['url']
+                }
+            )
+        return data
+
+    def get_mancity_feed(self, limit):
+        d = feedparser.parse(MANCITY_RSS_FEED)
+        data = dict()
+        data['feed_title'] = d.feed.title
+        data['feed_link'] = d.feed.link
+        data['feed_date'] = int(time())
+        data['entries'] = []
+        for index in range(0, limit):
+            entry = d.entries[index]
+            data['entries'].append(
+                {
+                    'title': entry['title'],
+                    'link': entry['link'],
+                    'publish_date': int(mktime(entry['published_parsed'])),
+                    'image_url': entry['media_thumbnail'][0]['url']
+                }
+            )
+        return data
+
 
 if __name__ == '__main__':
     rss = RssFeed()
-    rss.get_manutd_feed(5)
+    data = rss.get_mancity_feed(5)
+    print(json.dumps(data))
