@@ -1,7 +1,7 @@
 import requests
 import json
 from dateutil.relativedelta import relativedelta
-from datetime import timezone, datetime
+from datetime import timezone, datetime, timedelta
 
 
 league_competitions = {
@@ -47,17 +47,8 @@ class FootballApi(object):
         return datetime.strftime(local_dt, time_format)
 
     def _normalize_team_name(self, team_name):
-        team_name = str(team_name).replace('FC', '')
-        # team_name = team_name.replace('AFC', '')
-        # team_name = team_name.replace('Wanderers', '')
-        # team_name = team_name.replace('& Hove Albion', '')
-        # team_name = team_name.replace('CF', '')
-        # team_name = team_name.replace('RCD', '')
-        # team_name = team_name.replace('RC', '')
-        # team_name = team_name.replace('SD', '')
-        # team_name = team_name.replace('de Barcelona', '')
-        # team_name = team_name.replace('La Coruña', '')
-        # team_name = team_name.replace('de Fútbol', '')
+        team_name = str(team_name).replace('AFC', '')
+        team_name = team_name.replace('FC', '')
         return team_name.strip()
 
     def get_fixtures(self, league_name):
@@ -165,10 +156,54 @@ class FootballApi(object):
                         }
                     )
         return data
+    
+    def get_results(self, league_name, day_offset):
+        today = datetime.now()
+        params = {
+            'dateFrom': (today - timedelta(days=day_offset)).strftime('%Y-%m-%d'),
+            'dateTo': today.strftime('%Y-%m-%d'),
+            'status': 'FINISHED,LIVE'
+        }
+        url = base_url + '/competitions/' + league_competitions[league_name] + '/matches'
+        response = requests.get(url, headers=headers, params=params)
+        resp_json = response.json()
+        data = dict()
+        data['competition_name'] = resp_json['competition']['name']
+        for match in resp_json['matches']:
+            localt_dt = self._convert_datetime_timezone_to_local(match['utcDate'])
+            date_str = self._get_date_from_datetime(localt_dt)
+            home_team = match['homeTeam']
+            home_team['name'] = self._normalize_team_name(home_team['name'])
+            away_team = match['awayTeam']
+            away_team['name'] = self._normalize_team_name(away_team['name'])
+            if date_str not in data:
+                data[date_str] = [
+                    {
+                        'homeTeam': home_team,
+                        'awayTeam': away_team,
+                        'match_id': match['id'],
+                        'status': match['status'],
+                        'score': '{0} - {1}'.format(match['score']['fullTime']['homeTeam'], 
+                                        match['score']['fullTime']['awayTeam'])
+                    }
+                ]
+            else:
+                data[date_str].append(
+                    {
+                        'homeTeam': match['homeTeam'],
+                        'awayTeam': match['awayTeam'],
+                        'match_id': match['id'],
+                        'status': match['status'],
+                        'score': '{0} - {1}'.format(match['score']['fullTime']['homeTeam'], 
+                                        match['score']['fullTime']['awayTeam'])
+                    }
+                )
+
+        return data
 
 if __name__ == '__main__':
     football_api = FootballApi()
-    data = football_api.get_matches_by_team(66, 5)
+    data = football_api.get_results('pl', 7)
     print(json.dumps(data))
 
 
