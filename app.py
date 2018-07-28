@@ -3,6 +3,7 @@ import sys
 import os
 import json
 import feedparser
+from time import time
 from rss_feed import RssFeed
 from football_news import FootballNews
 from football_api import FootballApi
@@ -62,6 +63,14 @@ fixtures_header_color = {
     'laliga': '#FF7D01',
     'bundesliga': '#D20514',
     'calcio': '#098D37'
+}
+
+team_name_dict = {
+    'manutd': '66',
+    'arsenal': '57',
+    'liverpool': '64',
+    'chelsea': '61',
+    'mancity': '65'
 }
 
 
@@ -772,12 +781,80 @@ def handle_postback(event):
     elif 'team=' in data:
         handle_teams(event)
     
+def print_help(event):
+    help = """Usage():
+    @bot help
+    @bot allnews
+    @bot results=<league_name>
+    @bot fixtures=<league_name>
+    @bot teamnews=<team_name>
+    @bot team=<team_name>
+    @bot standings=<league_name>
+
+    <league_name> = pl | ucl | bundesliga | laliga | calcio
+    <team_name> = manutd | arsenal | liverpool | chelsea | mancity
+    """
+    line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text=help))
 
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
     text = event.message.text
     result = ''
+
+    if text.lower() == '@bot help':
+        print_help(event)
+        return
+    if '@bot results=' in text.lower():
+        league_name = text.lower().split('=')[1]
+        if league_name in fixtures_header_color:
+            results_pb = PostbackEvent(timestamp=time(), source=event.source, reply_token=event.reply_token,
+            postback={
+                'data': 'results={0}'.format(league_name)
+            })
+            handle_results(results_pb)
+        else:
+            print_help(event)
+    if '@bot fixtures=' in text.lower():
+        league_name = text.lower().split('=')[1]
+        if league_name in fixtures_header_color:
+            fixtures_pb = PostbackEvent(timestamp=time(), source=event.source, reply_token=event.reply_token,
+            postback={
+                'data': 'fixtures={0}'.format(league_name)
+            })
+            handle_fixtures(fixtures_pb)
+        else:
+            print_help(event)
+    if '@bot teamnews=' in text.lower():
+        team_name = text.lower().split('=')[1]
+        if team_name in team_name_dict:
+            teamnews_pb = PostbackEvent(timestamp=time(), source=event.source, reply_token=event.reply_token,
+            postback={
+                'data': 'team_news={0}'.format(team_name)
+            })
+            handle_team_news(teamnews_pb)
+        else:
+            print_help(event)
+    if '@bot team=' in text.lower():
+        team_name = text.lower().split('=')[1]
+        if team_name in team_name_dict:
+            team_pb = PostbackEvent(timestamp=time(), source=event.source, reply_token=event.reply_token,
+            postback={
+                'data': 'team={0}'.format(team_name_dict[team_name])
+            })
+            handle_teams(team_pb)
+        else:
+            print_help(event)
+    if '@bot standings=' in text.lower():
+        league_name = text.lower().split('=')[1]
+        if league_name in fixtures_header_color:
+            standings_pb = PostbackEvent(timestamp=time(), source=event.source, reply_token=event.reply_token,
+            postback={
+                'data': 'standings={0}'.format(league_name)
+            })
+            handle_standings(standings_pb)
+        else:
+            print_help(event)
 
     if text.lower() == 'news=bbc-sport':
         data = rss_feed.get_bbc_feed(5)
@@ -803,6 +880,8 @@ def handle_text_message(event):
     if text.lower() == 'news=dailymail':
         data = rss_feed.get_daily_mail_feed(5)
         result = football_news.get_news_bubble("#ffffff", data)
+    if text.lower() == '@bot allnews':
+        get_all_news(event.reply_token)
 
     if isinstance(result, BubbleContainer):
         line_bot_api.reply_message(event.reply_token, FlexSendMessage(alt_text='news', contents=result))
