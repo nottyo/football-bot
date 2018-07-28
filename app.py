@@ -256,7 +256,7 @@ def handle_fixtures(event):
                                 "wrap": True,
                                 "action": {
                                     "type": "postback",
-                                    "data": "team={0}".format(match['homeTeam']['id'])
+                                    "data": "matches_by_team={0}".format(match['homeTeam']['id'])
                                 }
                             },
                             {
@@ -277,7 +277,7 @@ def handle_fixtures(event):
                                 "wrap": True,
                                 "action": {
                                     "type": "postback",
-                                    "data": "team={0}".format(match['awayTeam']['id'])
+                                    "data": "matches_by_team={0}".format(match['awayTeam']['id'])
                                 }
                             }
                         ]
@@ -436,7 +436,93 @@ def handle_team_news(event):
 def handle_standings(event):
     print('handle_standings')
 
-
+def handle_matches_by_team(event):
+    print('handle_matches_by_team')
+    team_id = event.postback.data.split('=')[1]
+    team_fixtures = football_api.get_matches_by_team(team_id, 5)
+    bubble = {
+        "type": "bubble",
+        "styles": {
+            "header": {
+                "backgroundColor": "#007a12"
+            }
+        },
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "{0} Fixtures".format(team_fixtures['team_name']),
+                    "weight": "bold",
+                    "wrap": True,
+                    "color": "#ffffff",
+                    "size": "md",
+                    "action": {
+                        "type": "postback",
+                        "data": "team={0}".format(team_id)
+                    }
+                }
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "md",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "Upcoming Matches",
+                    "weight": "bold",
+                    "size": "xs",
+                    "align": "start"
+                },
+                {
+                    "type": "separator"
+                }
+            ]
+        }
+    }
+    bubble_body_contents = bubble['body']['contents']
+    for match in team_fixtures['matches']:
+        bubble_body_contents.append(
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "spacing": "md",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": match['dt'],
+                        "wrap": True,
+                        "size": "xxs",
+                        "flex": 2
+                    },
+                    {
+                        "type": "separator"
+                    },
+                    {
+                        "type": "text",
+                        "text": match['opponent_team_name'],
+                        "size": "xs",
+                        "wrap": True,
+                        "flex": 5,
+                        "action": {
+                            "type": "postback",
+                            "data": "matches_by_team={0}".format(match['opponent_team_id'])
+                        }
+                    }
+                ]
+            }
+        )
+        bubble_body_contents.append(
+            {
+                "type": "separator"
+            }
+        )
+    bubble_container = BubbleContainer.new_from_json_dict(bubble)
+    line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text='Team Fixtures', contents=bubble_container))
+    
 @handler.add(PostbackEvent)
 def handle_postback(event):
     data = event.postback.data
@@ -453,14 +539,17 @@ def handle_postback(event):
         _transition_rich_menu(event.source.user_id, TEAM_CHAT_BAR)
     if data == 'go=standings':
         _transition_rich_menu(event.source.user_id, STANDINGS_CHAT_BAR)
-    if 'fixtures=' in data:
-        handle_fixtures(event)
-    if 'team_news=' in data:
-        handle_team_news(event)
-    if 'team=' in data:
-        handle_teams(event)
     if data == 'go=back':
         _transition_rich_menu(event.source.user_id, MAIN_MENU_CHAT_BAR)
+    if 'fixtures=' in data:
+        handle_fixtures(event)
+    if 'matches_by_team=' in data:
+        handle_matches_by_team(event)
+    elif 'team_news=' in data:
+        handle_team_news(event)
+    elif 'team=' in data:
+        handle_teams(event)
+    
 
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -503,4 +592,4 @@ def handle_follow(event):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=6000)
+    app.run(debug=True, port=5000)

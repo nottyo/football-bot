@@ -28,7 +28,6 @@ class FootballApi(object):
     def _get_current_matchday(self, league_name):
         url = base_url + '/competitions/' + league_competitions[league_name]
         response = requests.get(url, headers=headers)
-        print('matchday_response: {}'.format(json.dumps(response.text)))
         json_resp = response.json()
         current_matchday = json_resp['currentSeason']['currentMatchday']
         if current_matchday is None:
@@ -41,12 +40,10 @@ class FootballApi(object):
         utc_dt = datetime.strptime(utc_dt_str, dt_format)
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
-    def _get_date_from_datetime(self, local_dt):
-        date_format = '%A %d %B %Y'
+    def _get_date_from_datetime(self, local_dt, date_format='%A %d %B %Y'):
         return datetime.strftime(local_dt, date_format)
 
-    def _get_time_from_datetime(self, local_dt):
-        time_format = '%H:%M'
+    def _get_time_from_datetime(self, local_dt, time_format='%H:%M'):
         return datetime.strftime(local_dt, time_format)
 
     def _normalize_team_name(self, team_name):
@@ -70,7 +67,6 @@ class FootballApi(object):
             'matchday': matchday
         }
         response = requests.get(url, params=params, headers=headers)
-        print('fixtures response: {}'.format(response.text))
         resp_json = response.json()
         data = dict()
         data['match_day'] = matchday
@@ -138,10 +134,41 @@ class FootballApi(object):
         data['players'] = sorted(data['players'], key=lambda k: k['position'])
         return data
 
+    def get_matches_by_team(self, team_id, limit):
+        url = base_url + '/teams/{0}/matches'.format(team_id)
+        response = requests.get(url, headers=headers)
+        resp_json = response.json()
+        data = dict()
+        data['matches'] = []
+        for match in resp_json['matches']:
+            if len(data['matches']) == limit:
+                break
+            if match['status'] == 'SCHEDULED':
+                local_dt = self._convert_datetime_timezone_to_local(match['utcDate'])
+                local_date = self._get_date_from_datetime(local_dt, date_format='%a, %b %d').upper()
+                local_time = self._get_time_from_datetime(local_dt)
+                if int(team_id) == match['homeTeam']['id']:
+                    data['team_name'] = match['homeTeam']['name']
+                    data['matches'].append(
+                        {
+                            'dt': '{0} {1}'.format(local_date, local_time),
+                            'opponent_team_name': '{0} (H)'.format(match['awayTeam']['name']),
+                            'opponent_team_id': match['awayTeam']['id']
+                        }
+                    )
+                else:
+                    data['matches'].append(
+                        {
+                            'dt': '{0} {1}'.format(local_date, local_time),
+                            'opponent_team_name': '{0} (A)'.format(match['homeTeam']['name']),
+                            'opponent_team_id': match['homeTeam']['id']
+                        }
+                    )
+        return data
 
 if __name__ == '__main__':
     football_api = FootballApi()
-    data = football_api.get_team('66')
+    data = football_api.get_matches_by_team(66, 5)
     print(json.dumps(data))
 
 
