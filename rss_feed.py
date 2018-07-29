@@ -164,12 +164,16 @@ class RssFeed(object):
         data['entries'] = []
         for index in range(0, limit):
             entry = d.entries[index]
+            if 'media_content' not in entry:
+                image_url = 'https://logos-download.com/wp-content/uploads/2016/06/The_Daily_Mirror_logo_red_background.png'
+            else:
+                image_url = entry['media_content'][0]['url']
             data['entries'].append(
                 {
                     'title': entry['title'],
                     'link': entry['link'],
                     'publish_date': mktime(entry['published_parsed']),
-                    'image_url': entry['media_content'][0]['url']
+                    'image_url': image_url
                 }
             )
         data['entries'] = sorted(data['entries'], key=lambda k: k['publish_date'], reverse=True)
