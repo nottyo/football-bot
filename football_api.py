@@ -121,7 +121,7 @@ class FootballApi(object):
                     }
                 )
             if player['role'] == 'COACH':
-                data['head_coach'] = player['name']
+                data['head_coach'] = '{0} {1}'.format(player['name'], self._get_emoji_flag(player['nationality']))
         data['players'] = sorted(data['players'], key=lambda k: k['position'])
         return data
 
