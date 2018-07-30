@@ -4,6 +4,7 @@ import sys
 import os
 import json
 import feedparser
+import requests
 from time import time
 from rss_feed import RssFeed
 from football_news import FootballNews
@@ -802,6 +803,18 @@ def print_help(event):
     """
     line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text=help))
 
+def get_liff_app(endpoint):
+    url = 'https://api.line.me/liff/v1/apps'
+    headers = {
+        'Authorization': 'Bearer {}'.format(channel_access_token) 
+    }
+    response = requests.get(url, headers=headers)
+    resp_json = response.json()
+    for app in resp_json['apps']:
+        if endpoint in app['view']['url']:
+            return 'line://app/{}'.format(app['liffId'])
+    return ''
+
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
@@ -809,7 +822,7 @@ def handle_text_message(event):
     result = ''
 
     if text.lower() == 'liff':
-        line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text='line://app/1588159696-BJ8l6vQ0'))
+        line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text=get_liff_app('/liff')))
         return
 
     if text.lower() == '@bot help':
