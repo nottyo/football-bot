@@ -1,4 +1,5 @@
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, render_template
+from flask_bootstrap import Bootstrap
 import sys
 import os
 import json
@@ -34,6 +35,7 @@ from linebot.models import (
 
 
 app = Flask(__name__)
+bootstrap = Bootstrap(app)
 rss_feed = RssFeed()
 football_news = FootballNews()
 football_api = FootballApi()
@@ -100,6 +102,10 @@ def callback():
 @app.route('/')
 def hello_world():
     return 'Hello World!'
+
+@app.route('/liff')
+def handle_liff():
+    return render_template('index.html')
 
 
 @app.route('/news/bbc/<limit>')
@@ -801,6 +807,10 @@ def print_help(event):
 def handle_text_message(event):
     text = event.message.text
     result = ''
+
+    if text.lower() == 'liff':
+        line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text='line://app/1588159696-BJ8l6vQ0'))
+        return
 
     if text.lower() == '@bot help':
         print_help(event)

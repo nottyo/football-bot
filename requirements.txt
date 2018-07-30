@@ -9,3 +9,4 @@ flask==1.0.2
 requests-xml==0.2.3
 html2text==2018.1.9
 python-dateutil==2.7.3
+flask-bootstrap==3.3.7.1
