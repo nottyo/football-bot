@@ -1,39 +1,25 @@
+import os
+import sys
+from time import time
+
+import requests
 from flask import Flask, request, abort, jsonify, render_template
 from flask_bootstrap import Bootstrap
-import sys
-import os
-import json
-import feedparser
-import requests
-from time import time
-from rss_feed import RssFeed
-from football_news import FootballNews
-from football_api import FootballApi
-
 from linebot import (
     LineBotApi, WebhookHandler
 )
-
 from linebot.exceptions import (
     LineBotApiError, InvalidSignatureError
 )
-
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
-    SourceUser, SourceGroup, SourceRoom,
-    TemplateSendMessage, ConfirmTemplate, MessageAction,
-    ButtonsTemplate, ImageCarouselTemplate, ImageCarouselColumn, URIAction,
-    PostbackAction, DatetimePickerAction,
-    CarouselTemplate, CarouselColumn, PostbackEvent,
-    StickerMessage, StickerSendMessage, LocationMessage, LocationSendMessage,
-    ImageMessage, VideoMessage, AudioMessage, FileMessage,
-    UnfollowEvent, FollowEvent, JoinEvent, LeaveEvent, BeaconEvent,
-    FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
-    TextComponent, SpacerComponent, IconComponent, ButtonComponent,
-    SeparatorComponent, CarouselContainer
+    PostbackEvent,
+    FollowEvent, FlexSendMessage, BubbleContainer, CarouselContainer
 )
 
-
+from football_api import FootballApi
+from football_news import FootballNews
+from rss_feed import RssFeed
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)

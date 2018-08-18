@@ -158,11 +158,10 @@ class FootballApi(object):
         return data
     
     def get_results(self, league_name, day_offset):
-        today = datetime.now()
+        current_matchday = self._get_current_matchday(league_name)
         params = {
-            'dateFrom': (today - timedelta(days=day_offset)).strftime('%Y-%m-%d'),
-            'dateTo': today.strftime('%Y-%m-%d'),
-            'status': 'FINISHED,LIVE'
+            'matchday': current_matchday,
+            'status': 'FINISHED,LIVE,IN_PLAY'
         }
         url = base_url + '/competitions/' + league_competitions[league_name] + '/matches'
         response = requests.get(url, headers=headers, params=params)
