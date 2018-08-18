@@ -12,6 +12,12 @@ league_competitions = {
     'calcio': '2019'
 }
 
+match_status = {
+    'FINISHED': "FT",
+    'IN_PLAY': 'LIVE',
+    'LIVE': 'LIVE'
+}
+
 headers = {
     'X-Auth-Token': '1439b063b66a479caf45a00d80d25e22'
 }
@@ -181,7 +187,7 @@ class FootballApi(object):
                         'homeTeam': home_team,
                         'awayTeam': away_team,
                         'match_id': match['id'],
-                        'status': match['status'],
+                        'status': match_status[match['status']],
                         'score': '{0} - {1}'.format(match['score']['fullTime']['homeTeam'], 
                                         match['score']['fullTime']['awayTeam'])
                     }
@@ -192,7 +198,7 @@ class FootballApi(object):
                         'homeTeam': match['homeTeam'],
                         'awayTeam': match['awayTeam'],
                         'match_id': match['id'],
-                        'status': match['status'],
+                        'status': match_status[match['status']],
                         'score': '{0} - {1}'.format(match['score']['fullTime']['homeTeam'], 
                                         match['score']['fullTime']['awayTeam'])
                     }

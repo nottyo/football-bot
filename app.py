@@ -366,15 +366,24 @@ def handle_results(event):
                                 }
                             },
                             {
-                                "type": "text",
-                                "size": "xxs",
-                                "text": match['score'],
-                                "flex": 1,
-                                "action": {
-                                    "type": "postback",
-                                    "data": "match={0}".format(match['match_id'])
-                                }
-                            },
+                                "type": "box",
+                                "layout": "vertical",
+                                "flex": 2,
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "size": "xxs",
+                                        "wrap": True,
+                                        "weight": "bold",
+                                        "text": "{0} ({1})".format(match['score'], match['status']),
+                                        "action": {
+                                            "type": "postback",
+                                            "data": "match={0}".format(match['match_id'])
+                                        }
+                                    }
+                                ]
+                            }
+                            ,
                             {
                                 "type": "text",
                                 "size": "xxs",
