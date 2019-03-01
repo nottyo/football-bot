@@ -12,6 +12,7 @@ from linebot.exceptions import (
     LineBotApiError, InvalidSignatureError
 )
 from linebot.models import (
+    SourceUser, SourceGroup, SourceRoom,
     MessageEvent, TextMessage, TextSendMessage,
     PostbackEvent,
     FollowEvent, FlexSendMessage, BubbleContainer, CarouselContainer
@@ -93,6 +94,26 @@ def hello_world():
 @app.route('/liff')
 def handle_liff():
     return render_template('index.html')
+
+@app.route('/live', methods=['GET'])
+def handle_live():
+    to = request.args.get('id')
+    data = rss_feed.get_live_feed()
+    if len(data) > 0:
+        today_data = data['data'][0]
+        carousel_data = rss_feed.create_live_flxed(today_data)
+        carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
+        line_bot_api.push_message(to=to, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
+    return jsonify({'status': 'ok', 'text': carousel_data})
+
+
+def print_source(event):
+    if isinstance(event.source, SourceUser):
+        print('user_id: {0}'.format(event.source.user_id))
+    if isinstance(event.source, SourceRoom):
+        print('room_id: {0}'.format(event.source.room_id))
+    if isinstance(event.source, SourceGroup):
+        print('group_id: {0}'.format(event.source.group_id))
 
 
 @app.route('/news/bbc/<limit>')
@@ -193,7 +214,6 @@ def _transition_rich_menu(user_id, to):
 
 
 def handle_fixtures(event):
-    print('handle_fixtures')
     data = event.postback.data
     league_name = str(data).split('=')[1]
     fixtures_data = football_api.get_fixtures(league_name)
@@ -814,11 +834,19 @@ def get_liff_app(endpoint):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
     text = event.message.text
+    print_source(event)
     result = ''
 
     if text.lower() == 'liff':
         line_bot_api.reply_message(event.reply_token, messages=TextSendMessage(text=get_liff_app('/liff')))
         return
+    if 'live' in text.lower():
+        data = rss_feed.get_live_feed()
+        if len(data) > 0:
+            today_data = data['data'][0]
+            carousel_data = rss_feed.create_live_flxed(today_data)
+            carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
+            line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
 
     if text.lower() == '@bot help':
         print_help(event)

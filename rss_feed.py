@@ -371,6 +371,92 @@ class RssFeed(object):
                 }
             )
         return data
+    
+    def get_live_feed(self):
+        access_token = self._get_access_token()
+        url = '{0}/fixtureschedule'.format(SOCCER_SUCK_API)
+        body = {
+            'access_token': access_token
+        }
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        response = requests.post(url, headers=headers, data=body)
+        return response.json()
+    
+    def create_live_flxed(self, today_raw_data):
+        carousel_container = {
+            "type": "carousel",
+            "contents": []
+        }
+        for league in today_raw_data['data']:
+            body = {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "โปรแกรมถ่ายทอดสดฟุตบอล",
+                        "size": "sm",
+                        "align": "center"
+                    },
+                    {
+                        "type": "text",
+                        "text": today_raw_data['date'],
+                        "size": "sm",
+                        "align": "center"
+                    }
+                ]
+            }
+            print('league title: {}'.format(league['match_title']))
+            body['contents'].append(
+                {
+                    "type": "text",
+                    "text": league['match_title'],
+                    "size": "xs",
+                    "align": "center"
+                }
+            )
+            body['contents'].append(
+                {
+                    "type": "separator",
+                    "color": "#000000"
+                }
+            )
+            for match in league['data']:
+                if len(match['channel']) > 0:
+                    body['contents'].append(
+                        {
+                            "type": "text",
+                            "text": "{0} {1} - {2} {3}".format(match['time'], match['home_team'], match['away_team'], ','.join(match['channel'])),
+                            "flex": 0,
+                            "size": "xxs",
+                            "wrap": True
+                        }
+                    )
+                else:
+                    body['contents'].append(
+                        {
+                            "type": "text",
+                            "text": "{0} {1} - {2}".format(match['time'], match['home_team'], match['away_team']),
+                            "flex": 0,
+                            "size": "xxs",
+                            "wrap": True
+                        }
+                    )
+                body['contents'].append(
+                    {
+                        "type": "separator",
+                        "color": "#000000"
+                    }
+                )
+            bubble = {
+                "type": "bubble",
+                "body": body
+            }
+            carousel_container['contents'].append(bubble)
+        return carousel_container
 
 
 if __name__ == '__main__':
