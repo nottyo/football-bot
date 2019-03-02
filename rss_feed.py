@@ -1,5 +1,5 @@
 import feedparser
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import mktime, time
 from bs4 import BeautifulSoup
 from requests_xml import XMLSession
@@ -10,6 +10,7 @@ import re
 import uuid
 import requests
 import html2text
+import dateparser
 
 BBC_RSS_FEED = 'http://feeds.bbci.co.uk/sport/football/rss.xml'
 UK_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %Z'
@@ -384,82 +385,106 @@ class RssFeed(object):
         response = requests.post(url, headers=headers, data=body)
         return response.json()
     
-    def create_live_flxed(self, today_raw_data):
-        carousel_container = {
-            "type": "carousel",
-            "contents": []
-        }
-        for league in today_raw_data['data']:
-            body = {
-                "type": "box",
-                "layout": "vertical",
-                "spacing": "sm",
-                "contents": [
-                    {
-                        "type": "text",
-                        "text": "โปรแกรมถ่ายทอดสดฟุตบอล",
-                        "size": "sm",
-                        "align": "center"
-                    },
-                    {
-                        "type": "text",
-                        "text": today_raw_data['date'],
-                        "size": "sm",
-                        "align": "center"
+    def create_live_flxed(self, data):
+        for d in data:
+            date = d['date']
+            if self.is_today_in_thai(date):
+                carousel_container = {
+                    "type": "carousel",
+                    "contents": []
+                }
+                for league in d['data']:
+                    body = {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "sm",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "โปรแกรมถ่ายทอดสดฟุตบอล",
+                                "size": "sm",
+                                "align": "center"
+                            },
+                            {
+                                "type": "text",
+                                "text": d['date'],
+                                "size": "sm",
+                                "align": "center"
+                            }
+                        ]
                     }
-                ]
-            }
-            print('league title: {}'.format(league['match_title']))
-            body['contents'].append(
-                {
-                    "type": "text",
-                    "text": league['match_title'],
-                    "size": "xs",
-                    "align": "center"
-                }
-            )
-            body['contents'].append(
-                {
-                    "type": "separator",
-                    "color": "#000000"
-                }
-            )
-            for match in league['data']:
-                if len(match['channel']) > 0:
                     body['contents'].append(
                         {
                             "type": "text",
-                            "text": "{0} {1} - {2} {3}".format(match['time'], match['home_team'], match['away_team'], ','.join(match['channel'])),
-                            "flex": 0,
-                            "size": "xxs",
-                            "wrap": True
+                            "text": league['match_title'],
+                            "size": "xs",
+                            "align": "center",
+                            "weight": "bold",
+                            "color": "#800000"
                         }
                     )
-                else:
                     body['contents'].append(
                         {
-                            "type": "text",
-                            "text": "{0} {1} - {2}".format(match['time'], match['home_team'], match['away_team']),
-                            "flex": 0,
-                            "size": "xxs",
-                            "wrap": True
+                            "type": "separator",
+                            "color": "#000000"
                         }
                     )
-                body['contents'].append(
-                    {
-                        "type": "separator",
-                        "color": "#000000"
+                    for match in league['data']:
+                        if len(match['channel']) > 0:
+                            body['contents'].append(
+                                {
+                                    "type": "box",
+                                    "spacing": "sm",
+                                    "layout": "vertical",
+                                    "contents": [
+                                        {
+                                            "type": "text",
+                                            "text": "{0} {1} - {2}".format(match['time'], match['home_team'], match['away_team']),
+                                            "flex": 0,
+                                            "size": "xxs",
+                                            "wrap": True
+                                        },
+                                        {
+                                            "type": "text",
+                                            "text": ','.join(match['channel']),
+                                            "size": "xxs",
+                                            "weight": "bold",
+                                            "wrap": True,
+                                            "color": "#008000"
+                                        }
+                                    ]
+                                }
+                            )
+                        else:
+                            body['contents'].append(
+                                {
+                                    "type": "text",
+                                    "text": "{0} {1} - {2}".format(match['time'], match['home_team'], match['away_team']),
+                                    "flex": 0,
+                                    "size": "xxs",
+                                    "wrap": True
+                                }
+                            )
+                        body['contents'].append(
+                            {
+                                "type": "separator",
+                                "color": "#000000"
+                            }
+                        )
+                    bubble = {
+                        "type": "bubble",
+                        "body": body
                     }
-                )
-            bubble = {
-                "type": "bubble",
-                "body": body
-            }
-            carousel_container['contents'].append(bubble)
-        return carousel_container
+                    carousel_container['contents'].append(bubble)
+                return carousel_container
+
+    def is_today_in_thai(self, date_str):
+        date_obj = dateparser.parse(date_str, languages=['th'])
+        today = dateparser.parse('today 00:00')
+        today = today.replace(year=today.year + 543)
+        return date_obj == today
 
 
 if __name__ == '__main__':
     rss = RssFeed()
-    data = rss.get_mancity_feed(5)
-    print(json.dumps(data))
+    print(rss.is_today_in_thai('วันเสาร์ที่ 2 มีนาคม 2562'))

@@ -100,11 +100,11 @@ def handle_live():
     to = request.args.get('id')
     data = rss_feed.get_live_feed()
     if len(data) > 0:
-        today_data = data['data'][0]
-        carousel_data = rss_feed.create_live_flxed(today_data)
-        carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
-        line_bot_api.push_message(to=to, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
-    return jsonify({'status': 'ok', 'text': carousel_data})
+        carousel_data = rss_feed.create_live_flxed(data['data'])
+        if carousel_data is not None:
+            carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
+            line_bot_api.push_message(to=to, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
+    return jsonify({'status': 'ok'})
 
 
 def print_source(event):
@@ -843,10 +843,10 @@ def handle_text_message(event):
     if 'live' in text.lower():
         data = rss_feed.get_live_feed()
         if len(data) > 0:
-            today_data = data['data'][0]
-            carousel_data = rss_feed.create_live_flxed(today_data)
-            carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
-            line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
+            carousel_data = rss_feed.create_live_flxed(data['data'])
+            if carousel_data is not None:
+                carousel_message = CarouselContainer.new_from_json_dict(carousel_data)
+                line_bot_api.reply_message(event.reply_token, messages=FlexSendMessage(alt_text="โปรแกรมถ่ายทอดสดฟุตบอล", contents=carousel_message))
 
     if text.lower() == '@bot help':
         print_help(event)
